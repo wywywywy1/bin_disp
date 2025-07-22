@@ -6,11 +6,11 @@ using torch::autograd::Function;
 using torch::autograd::AutogradContext;
 using variable_list = std::vector<at::Tensor>;
 // 前向实现
-at::Tensor de_disp_impl_npu(const at::Tensor& self) {
+at::Tensor de_disp_impl_npu(const at::Tensor& self, const at::Tensor& other) {
     // 创建输出内存
-    at::Tensor result = at::empty_like(self);
+    at::Tensor result = at::empty_like(self, other);
     // 调用aclnn接口计算
-    EXEC_NPU_CMD(aclnnDeDisp, self, result);
+    EXEC_NPU_CMD(aclnnDeDisp, self, other, result);
     return result;
 }
 // 反向实现
@@ -21,12 +21,12 @@ std::tuple<at::Tensor> de_disp_backward_impl_npu(const at::Tensor& grad) {
 // 通过继承torch::autograd::Function类实现前反向绑定
 class DeDispFunction : public torch::autograd::Function<DeDispFunction> {
     public:
-        static at::Tensor forward(AutogradContext *ctx, at::Tensor self) {
+        static at::Tensor forward(AutogradContext *ctx, at::Tensor self, at::Tensor other) {
             at::AutoDispatchBelowADInplaceOrView guard;
             static auto op = torch::Dispatcher::singleton()
                             .findSchemaOrThrow("myops::de_disp", "")
                             .typed<decltype(de_disp_impl_npu)>();
-            auto result = op.call(self);
+            auto result = op.call(self, other);
             return result;
         }
         static variable_list backward(AutogradContext *ctx, variable_list grad_outputs) {
@@ -39,7 +39,7 @@ class DeDispFunction : public torch::autograd::Function<DeDispFunction> {
         }
 };
 // 使用的时候调用apply()方法
-at::Tensor de_disp_autograd(const at::Tensor& self) {
+at::Tensor de_disp_autograd(const at::Tensor& self, const at::Tensor& other) {
     return DeDispFunction::apply(self);
 }
 // 为NPU设备注册前反向实现

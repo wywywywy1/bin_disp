@@ -29,16 +29,20 @@ class TestDeDisp(TestCase):
         y = 1.0
 
         x_cpu = torch.randn([512, 1], dtype=torch.float32)
+        xTeamy_cpu = torch.tensor([[4150.0], [1.0]])
         x_npu = copy.deepcopy(x_cpu).npu()
+        xTeamy_npu = copy.deepcopy(xTeamy_cpu).npu()
         x_cpu.requires_grad = True
         x_npu.requires_grad = True
+        xTeamy_cpu.requires_grad = True
+        xTeamy_npu.requires_grad = True
 
         # calculate on npu
         # get_function_source(custom_ops.de_disp)
         # print(dir(custom_ops))
         # callable_items = [item for item in dir(custom_ops) if callable(getattr(custom_ops, item))]
         # print("custom_ops模块中的可调用对象:", callable_items)
-        output = custom_ops.de_disp(x_npu)
+        output = custom_ops.de_disp(x_npu, xTeamy_npu)
         # output.backward(output)
 
         # calculate on cpu

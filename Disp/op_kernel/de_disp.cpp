@@ -9,7 +9,7 @@ class KernelDedisp {
 public:
     __aicore__ inline KernelDedisp() {
     }
-    __aicore__ inline void Init(GM_ADDR freq, GM_ADDR outfreq, uint32_t totalLength, uint32_t tileNum, 
+    __aicore__ inline void Init(GM_ADDR freq, GM_ADDR xTeamy, GM_ADDR outfreq, uint32_t totalLength, uint32_t tileNum, 
                                 float time_reso, float down_time_rate, float xTeam, float y, float freq1) {
 
         this->time_reso = time_reso;
@@ -28,9 +28,11 @@ public:
         // 获取当前核的起始索引
         ASSERT((blockLength * (GetBlockIdx() + 1)) <= totalLength);
         freqGm.SetGlobalBuffer((__gm__ DTYPE*)freq + this->blockLength * GetBlockIdx(), this->blockLength);
+        xTeamyGm.SetGlobalBuffer((__gm__ DTYPE*)xTeamy + this->blockLength * GetBlockIdx(), this->blockLength);
         outfreqGm.SetGlobalBuffer((__gm__ DTYPE*)outfreq + this->blockLength * GetBlockIdx(), this->blockLength);
         // 通过Pipe内存管理对象为输入输出Queue分配内存
         pipe.InitBuffer(inQueuefreq, BUFFER_NUM, this->tileLength * sizeof(DTYPE));
+        pipe.InitBuffer(inQueuexTeamy, BUFFER_NUM, this->tileLength * sizeof(DTYPE));
         pipe.InitBuffer(outQueueoutfreq, BUFFER_NUM, this->tileLength * sizeof(DTYPE));
         ASSERT(tmpBuffer1.GetSize() >= tileLength * sizeof(DTYPE));
         ASSERT(tmpBuffer2.GetSize() >= tileLength * sizeof(DTYPE));
@@ -60,16 +62,20 @@ private:
     {
         // 从Queue中分配输入Tensor
         LocalTensor<DTYPE> freqLocal = inQueuefreq.AllocTensor<DTYPE>();
+        LocalTensor<DTYPE> xTeamyLocal = inQueuexTeamy.AllocTensor<DTYPE>();
         // 将GlobalTensor数据拷贝到LocalTensor
         DataCopy(freqLocal, freqGm[progress * this->tileLength], this->tileLength);
+        DataCopy(xTeamyLocal, xTeamyGm[progress * this->tileLength], this->tileLength);
         // 将LocalTesor放入VECIN（代表矢量编程中搬入数据的逻辑存放位置）的Queue中
         inQueuefreq.EnQue(freqLocal);
+        inQueuexTeamy.EnQue(xTeamyLocal);
     }
     // 计算函数，完成Compute阶段的处理，被核心Process函数调用
     __aicore__ inline void Compute(int32_t progress)
     {
         // 将Tensor从队列中取出，用于后续计算
         LocalTensor<DTYPE> freqLocal = inQueuefreq.DeQue<DTYPE>();
+        LocalTensor<DTYPE> xTeamyLocal = inQueuexTeamy.DeQue<DTYPE>();
         // 从Queue中分配输出Tensor
         LocalTensor<DTYPE> outfreqLocal = outQueueoutfreq.AllocTensor<DTYPE>();
         // 调用接口进行计算        
@@ -84,10 +90,10 @@ private:
         ASSERT(down_time_rate != 0);
 
         float inputVal1 = -this->freq1;
-        float inputVal0 = this->xTeam;
+        float inputVal0 = xTeamyLocal.GetValue(0);
         float inputVal2 = 1 / this->time_reso;
         float inputVal3 = 1 / this->down_time_rate;
-        float inputValy = this->y;
+        float inputValy = xTeamyLocal.GetValue(1);
 
         // AscendC::DumpTensor(freqLocal,5, this->tileLength);
         Adds(tmpTensor1, freqLocal, inputVal1, this->tileLength);
