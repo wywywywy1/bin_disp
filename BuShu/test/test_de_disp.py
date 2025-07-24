@@ -53,10 +53,9 @@ class TestDeDisp(TestCase):
         # cpuout = torch.de_disp(x_cpu)
         # cpuout.backward(cpuout)
         cpuout = torch.randn([512, 1], dtype=torch.float32)
-        for j in range(100):
-            for i in range(512):
-                x = x_cpu[i, 0]
-                cpuout[i, 0] = 4.15 * DM * (x - freq**(-2)) * 1e3 / time_reso / down_time_rate + y
+        for i in range(512):
+            x = x_cpu[i, 0]
+            cpuout[i, 0] = 4.15 * DM * (x - freq**(-2)) * 1e3 / time_reso / down_time_rate + y
         # cpuout.backward(cpuout)
 
         # compare result

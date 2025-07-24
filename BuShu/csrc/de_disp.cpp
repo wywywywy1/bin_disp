@@ -8,15 +8,15 @@ using variable_list = std::vector<at::Tensor>;
 // 前向实现
 at::Tensor de_disp_impl_npu(const at::Tensor& self, const at::Tensor& other) {
     // 创建输出内存
-    at::Tensor result = at::empty_like(self, other);
+    at::Tensor result = at::empty_like(self);
     // 调用aclnn接口计算
     EXEC_NPU_CMD(aclnnDeDisp, self, other, result);
     return result;
 }
 // 反向实现
-std::tuple<at::Tensor> de_disp_backward_impl_npu(const at::Tensor& grad) {
+std::tuple<at::Tensor, at::Tensor> de_disp_backward_impl_npu(const at::Tensor& grad) {
     at::Tensor result = grad; // 创建输出内存
-    return {result};
+    return {result, result};
 }
 // 通过继承torch::autograd::Function类实现前反向绑定
 class DeDispFunction : public torch::autograd::Function<DeDispFunction> {
@@ -35,12 +35,12 @@ class DeDispFunction : public torch::autograd::Function<DeDispFunction> {
                           .findSchemaOrThrow("myops::de_disp_backward", "")
                           .typed<decltype(de_disp_backward_impl_npu)>();
             auto result = op.call(grad_output);
-            return {std::get<0>(result)};
+            return {std::get<0>(result), std::get<1>(result)};
         }
 };
 // 使用的时候调用apply()方法
 at::Tensor de_disp_autograd(const at::Tensor& self, const at::Tensor& other) {
-    return DeDispFunction::apply(self);
+    return DeDispFunction::apply(self, other);
 }
 // 为NPU设备注册前反向实现
 // NPU设备在pytorch 2.1及以上版本使用的设备名称是PrivateUse1，在2.1以下版本用的是XLA，如果是2.1以下版本PrivateUse1需要改成XLA

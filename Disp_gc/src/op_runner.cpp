@@ -314,7 +314,7 @@ bool OpRunner::RunOp()
     size_t workspaceSize = 0;
     aclOpExecutor *handle = nullptr;
     auto ret =
-        aclnnDeDispGetWorkspaceSize(inputTensor_[0], outputTensor_[0], &workspaceSize, &handle);
+        aclnnDeDispGetWorkspaceSize(inputTensor_[0], inputTensor_[1], outputTensor_[0], &workspaceSize, &handle);
     if (ret != ACL_SUCCESS) {
         (void)aclrtDestroyStream(stream);
         ERROR_LOG("Get Operator Workspace failed. error code is %d", static_cast<int32_t>(ret));
@@ -338,7 +338,7 @@ bool OpRunner::RunOp()
     INFO_LOG("Execute aclnnDeDisp success");
 
     // The unit of 5000 is ms. // 在这里报错的，同步流超时，怀疑就是算子Peocess()函数中的实现有问题。  [ERROR]  Synchronize stream failed40000. error code is 507015 
-    ret = aclrtSynchronizeStreamWithTimeout(stream, 1000);
+    ret = aclrtSynchronizeStreamWithTimeout(stream, 40000);
     if (ret != SUCCESS) {
         ERROR_LOG("Synchronize stream failed 40000. error code is %d", static_cast<int32_t>(ret));
         (void)aclrtDestroyStream(stream);

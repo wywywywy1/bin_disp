@@ -66,6 +66,7 @@ private:
         // 将GlobalTensor数据拷贝到LocalTensor
         DataCopy(freqLocal, freqGm[progress * this->tileLength], this->tileLength);
         DataCopy(xTeamyLocal, xTeamyGm[progress * this->tileLength], this->tileLength);
+
         // 将LocalTesor放入VECIN（代表矢量编程中搬入数据的逻辑存放位置）的Queue中
         inQueuefreq.EnQue(freqLocal);
         inQueuexTeamy.EnQue(xTeamyLocal);
@@ -89,11 +90,17 @@ private:
         ASSERT(time_reso != 0.0f);
         ASSERT(down_time_rate != 0);
 
+        AscendC::DumpTensor(xTeamyLocal,5, this->tileLength);
+
         float inputVal1 = -this->freq1;
+        // float inputVal0 = xTeamyLocal[0];
         float inputVal0 = xTeamyLocal.GetValue(0);
+        AscendC::printf("value is %f\n",inputVal0);
+        // float inputVal0 = this->xTeam;
         float inputVal2 = 1 / this->time_reso;
         float inputVal3 = 1 / this->down_time_rate;
         float inputValy = xTeamyLocal.GetValue(1);
+        // float inputValy = this->y;
 
         // AscendC::DumpTensor(freqLocal,5, this->tileLength);
         Adds(tmpTensor1, freqLocal, inputVal1, this->tileLength);
@@ -114,6 +121,7 @@ private:
         outQueueoutfreq.EnQue<DTYPE>(outfreqLocal);
         // 释放输入Tensor
         inQueuefreq.FreeTensor(freqLocal);
+        inQueuexTeamy.FreeTensor(xTeamyLocal);
     }
     // 搬出函数，完成CopyOut阶段的处理，被核心Process函数调用
     __aicore__ inline void CopyOut(int32_t progress)
@@ -131,10 +139,11 @@ private:
     TPipe pipe;
     //输入数据Queue队列管理对象，QuePosition为VECIN
     TQue<QuePosition::VECIN, BUFFER_NUM> inQueuefreq; 
+    TQue<QuePosition::VECIN, BUFFER_NUM> inQueuexTeamy;
     //输出数据Queue队列管理对象，QuePosition为VECOUT
     TQue<QuePosition::VECOUT, BUFFER_NUM> outQueueoutfreq;
     //管理输入输出Global Memory内存地址的对象，其中xGm, yGm为输入，zGm为输出
-    GlobalTensor<DTYPE> freqGm;
+    GlobalTensor<DTYPE> freqGm, xTeamyGm;
     GlobalTensor<DTYPE> outfreqGm;
     TBuf<QuePosition::VECCALC> tmpBuffer1, tmpBuffer2, tmpBuffer3, tmpBuffer4, tmpBuffer5;
     // 每个核上总计算数据大小
@@ -150,10 +159,10 @@ private:
     float freq1;
 };
 
-extern "C" __global__ __aicore__ void de_disp(GM_ADDR freq, GM_ADDR outfreq, GM_ADDR workspace, GM_ADDR tiling) {
+extern "C" __global__ __aicore__ void de_disp(GM_ADDR freq, GM_ADDR xTeamy, GM_ADDR outfreq, GM_ADDR workspace, GM_ADDR tiling) {
     GET_TILING_DATA(tiling_data, tiling);
     KernelDedisp<float> op;
-    op.Init(freq, outfreq, tiling_data.totalLength, tiling_data.tileNum,
+    op.Init(freq, xTeamy, outfreq, tiling_data.totalLength, tiling_data.tileNum,
          tiling_data.time_reso, tiling_data.down_time_rate, tiling_data.xTeam, tiling_data.y, tiling_data.freq1);
     op.Process();
     // for (int i = 0; i < 100000; i++) {

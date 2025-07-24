@@ -29,7 +29,7 @@ OperatorDesc CreateOpDesc()
     aclFormat format = ACL_FORMAT_ND;
     OperatorDesc opDesc;
     opDesc.AddInputTensorDesc(dataType, shape.size(), shape.data(), format);
-    // opDesc.AddInputTensorDesc(dataType, shape.size(), shape.data(), format);
+    opDesc.AddInputTensorDesc(dataType, shape.size(), shape.data(), format);
     opDesc.AddOutputTensorDesc(dataType, shape.size(), shape.data(), format);
     return opDesc;
 }
@@ -38,6 +38,7 @@ bool SetInputData(OpRunner &runner)
 {
     size_t fileSize = 0;
     ReadFile("../input/inputfreq.bin", fileSize, runner.GetInputBuffer<void>(0), runner.GetInputSize(0));
+    ReadFile("../input/inputxTeamy.bin", fileSize, runner.GetInputBuffer<void>(1), runner.GetInputSize(1));
     INFO_LOG("Set input success");
     return true;
 }
