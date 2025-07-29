@@ -11,8 +11,8 @@ static ge::graphStatus TilingFunc(gert::TilingContext* context)
   tiling.set_freq1(1.0);
   tiling.set_y(1.0);
   tiling.set_xTeam(4150.0);
-  tiling.set_time_reso(1.0);
-  tiling.set_down_time_rate(2.0);
+  tiling.set_time_reso(4.9152e-05);
+  tiling.set_down_time_rate(4.0);
   const uint32_t BLOCK_DIM = 8;
   const uint32_t TILE_NUM = 8; //送进AIcore的数据分多少小块
   const gert::StorageShape* x1_shape = context->GetInputShape(0);

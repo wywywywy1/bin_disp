@@ -28,7 +28,7 @@ public:
         // 获取当前核的起始索引
         ASSERT((blockLength * (GetBlockIdx() + 1)) <= totalLength);
         freqGm.SetGlobalBuffer((__gm__ DTYPE*)freq + this->blockLength * GetBlockIdx(), this->blockLength);
-        xTeamyGm.SetGlobalBuffer((__gm__ DTYPE*)xTeamy + this->blockLength * GetBlockIdx(), this->blockLength);
+        xTeamyGm.SetGlobalBuffer((__gm__ DTYPE*)xTeamy + this->blockLength * 0, this->blockLength);
         outfreqGm.SetGlobalBuffer((__gm__ DTYPE*)outfreq + this->blockLength * GetBlockIdx(), this->blockLength);
         // 通过Pipe内存管理对象为输入输出Queue分配内存
         pipe.InitBuffer(inQueuefreq, BUFFER_NUM, this->tileLength * sizeof(DTYPE));
@@ -49,6 +49,7 @@ public:
     __aicore__ inline void Process()
     {
         int32_t loopCount = this->tileNum * BUFFER_NUM;
+        AscendC::printf("loopCount value is %d\n",loopCount);
         for (int32_t i = 0; i < loopCount; i++) {
             CopyIn(i);
             Compute(i);
@@ -65,7 +66,8 @@ private:
         LocalTensor<DTYPE> xTeamyLocal = inQueuexTeamy.AllocTensor<DTYPE>();
         // 将GlobalTensor数据拷贝到LocalTensor
         DataCopy(freqLocal, freqGm[progress * this->tileLength], this->tileLength);
-        DataCopy(xTeamyLocal, xTeamyGm[progress * this->tileLength], this->tileLength);
+        // AscendC::printf("progress value is %d\n",progress);
+        DataCopy(xTeamyLocal, xTeamyGm[0 * this->tileLength], this->tileLength);
 
         // 将LocalTesor放入VECIN（代表矢量编程中搬入数据的逻辑存放位置）的Queue中
         inQueuefreq.EnQue(freqLocal);
@@ -90,12 +92,12 @@ private:
         ASSERT(time_reso != 0.0f);
         ASSERT(down_time_rate != 0);
 
-        AscendC::DumpTensor(xTeamyLocal,5, this->tileLength);
+        // AscendC::DumpTensor(xTeamyLocal,5, this->tileLength);
 
         float inputVal1 = -this->freq1;
         // float inputVal0 = xTeamyLocal[0];
         float inputVal0 = xTeamyLocal.GetValue(0);
-        AscendC::printf("value is %f\n",inputVal0);
+        // AscendC::printf("inputVal0 value is %f\n",inputVal0);
         // float inputVal0 = this->xTeam;
         float inputVal2 = 1 / this->time_reso;
         float inputVal3 = 1 / this->down_time_rate;

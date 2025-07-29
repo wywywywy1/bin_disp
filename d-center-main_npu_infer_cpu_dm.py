@@ -38,12 +38,6 @@ device = torch.device('npu' if torch_npu.npu.is_available() else 'cpu')
 from centernet_utils import get_res
 from centernet_model import centernet
 
-from torch_npu.testing.testcase import TestCase, run_tests
-import custom_ops
-import copy
-import inspect
-import os
-
 # 保存处理后的数据
 def save_processed_data(slice_data, save_path, filename, j, time_reso, down_time_rate, down_freq_rate, DM_range, block_size, verbose=True):
     """
@@ -137,12 +131,16 @@ def get_obparams(file_name):
 
 #     return dm_time
 
-@njit(parallel=True)
+# @njit(parallel=True)
 def de_disp(dm_time, data, freq, index):
-    print(dm_time.shape[1])
-    print(dm_time.shape[2])
-    for x in prange(dm_time.shape[1]):
-        for y in range(dm_time.shape[2]):
+    # print("********************************************************")
+    # print(dm_time.shape[1])
+    # print(dm_time.shape[2])
+    # print(time_reso)
+    # print(down_time_rate)
+    # print("********************************************************")
+    for x in range(1000):
+        for y in range(1000):
             td_i = 0
             DM = x
             for i in index:
@@ -402,7 +400,7 @@ if __name__ == '__main__':
     block_size    = 8192
     det_prob      = 0.3
 
-    base_path = '/mnt/volume/userdata/zjt/dev/Projects/DRAFTS/'
+    base_path = '/home/zjt/DRAFTS/'
 
     ## 载入模型
     base_model    = 'resnet18'

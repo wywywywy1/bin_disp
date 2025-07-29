@@ -22,8 +22,8 @@ def get_function_source(func):
 
 class TestDeDisp(TestCase):
     def test_de_disp(self):
-        time_reso = 1.0
-        down_time_rate = 2.0
+        time_reso = 4.9152e-05
+        down_time_rate = 4.0
         freq = 1.0
         DM = 1.0
         y = 1.0

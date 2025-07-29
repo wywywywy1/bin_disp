@@ -13,8 +13,8 @@ import threading
 
 
 def gen_golden_data_simple():
-    time_reso = 1.0
-    down_time_rate = 2.0
+    time_reso = 4.9152e-05
+    down_time_rate = 4.0
     freq = 1.0
     DM = 1.0
     y = 1.0
@@ -23,9 +23,8 @@ def gen_golden_data_simple():
     # golden = np.zeros(512*65536*2048).astype(np.float32)  #  np.zeros()函数默认返回 float64 双精度的值, 需要转换为和输出结果数据类型一致的 np.float32。
     golden = np.zeros(512).astype(np.float32)  #  np.zeros()函数默认返回 float64 双精度的值, 需要转换为和输出结果数据类型一致的 np.float32。
     input_xTeamy = np.zeros(512).astype(np.float32)
-    for i in range(64):
-        input_xTeamy[i * 8] = 4150.0
-        input_xTeamy[i * 8 + 1] = 1.0
+    input_xTeamy[0] = 4150.0
+    input_xTeamy[1] = 1.0
 
     # for j in range(100):
     #     for i in range(512):

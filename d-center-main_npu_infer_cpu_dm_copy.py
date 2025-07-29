@@ -136,18 +136,46 @@ def get_obparams(file_name):
 #     dm_time  = dm_time_gpu.copy_to_host()
 
 #     return dm_time
-def de_disp_pro(freq):
+
+def de_disp_pro(freq, xy):
+
     """确保张量在 NPU 上，并调用自定义算子"""
+    # print("*********************************start************************************")
     freq_tensor = torch.from_numpy(freq).npu().float()  # 移动到 NPU
-    output_tensor = custom_ops.de_disp(freq_tensor)  # 在 NPU 上执行
+    xy_tensor = torch.from_numpy(xy).npu().float()
+    output_tensor = custom_ops.de_disp(freq_tensor, xy_tensor)  # 在 NPU 上执行
+    # print("*********************************end************************************")
+
     return output_tensor.cpu().numpy()  # 如果需要 NumPy 结果
  
-@njit(parallel=True)
-def _de_disp_numba(dm_time, data, output, index):
-    """Numba 部分：纯数值计算（假设 output 是 1D 数组）"""
-    for x in prange(dm_time.shape[1]):
-        for y in range(dm_time.shape[2]):
-            td_i = 0
+# # @njit(parallel=True)
+# def _de_disp_numba(dm_time, data, output, index, x, y):
+#     """Numba 部分：纯数值计算（假设 output 是 1D 数组）"""
+#     # for x in prange(dm_time.shape[1]):
+#     #     for y in range(dm_time.shape[2]):
+
+#     td_i = 0            
+#     for i in index:
+#         idx = int(output[i])  # 根据实际形状调整索引
+#         if 0 <= idx < data.shape[0]:
+#             td_i += data[idx, i]
+#         if i == 256:
+#             dm_time[1, x, y] = td_i
+#     dm_time[2, x, y] = td_i - dm_time[1, x, y]
+#     dm_time[0, x, y] = td_i
+
+# @njit(parallel=True)
+def de_disp(dm_time, data, freq, index):
+    """主函数：协调 NPU 和 Numba"""
+    for x in range(1000):
+        for y in range(1000):
+            xy = np.zeros(2)
+            xy[0] = x * 4150
+            xy[1] = y
+            output = de_disp_pro(freq, xy)  # 在 NPU 上计算
+            output = output.astype(np.int64)
+            # _de_disp_numba(dm_time, data, output, index, x, y)  # 在 CPU/Numba 上计算
+            td_i = 0            
             for i in index:
                 idx = int(output[i])  # 根据实际形状调整索引
                 if 0 <= idx < data.shape[0]:
@@ -156,12 +184,6 @@ def _de_disp_numba(dm_time, data, output, index):
                     dm_time[1, x, y] = td_i
             dm_time[2, x, y] = td_i - dm_time[1, x, y]
             dm_time[0, x, y] = td_i
- 
-def de_disp(dm_time, data, freq, index):
-    """主函数：协调 NPU 和 Numba"""
-    output = de_disp_pro(freq)  # 在 NPU 上计算
-    output = output.astype(np.int64)
-    _de_disp_numba(dm_time, data, output, index)  # 在 CPU/Numba 上计算
 
 
 def d_dm_time_g(data, height, width):
